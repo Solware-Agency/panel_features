@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-table-card {
+    @apply bg-white dark: bg-background rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-transform duration-300;
+  }
+}
+
+@keyframes slowPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(158, 17, 87, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(158, 17, 87, 0.8);
+  }
+}
+
+@layer base {
+  :root {
+    --background: 240 10% 99%;
+    /* Lighter gray */
+    --foreground: 224 71% 4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+
+    --primary: 330 81% 60%;
+    /* Hot Pink */
+    --primary-foreground: 330 81% 98%;
+
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 330 81% 60%;
+    /* Hot Pink for focus */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 330 81% 60%;
+    --primary-foreground: 330 81% 98%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 330 81% 60%;
+  }
+}
+
+@layer base {
+
+  * {
+    @apply border-border;
+    /* Solo mantener transiciones para efectos hover/focus, no para cambios de tema */
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    /* Sin transiciones para cambio instantáneo */
+  }
+}
+
+::-moz-selection {
+  /* Para Firefox */
+  background: hsl(330 81% 60%);
+  color: white;
+}
+
+::selection {
+  background: hsl(330 81% 60%);
+  color: white;
+}
+
+/* Responsive table styles */
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
+/* Improved mobile scrolling */
+@media (max-width: 640px) {
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  .mobile-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+}
