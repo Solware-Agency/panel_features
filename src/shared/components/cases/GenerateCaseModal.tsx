@@ -8,10 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@shared/components/ui/button'
 import { Textarea } from '@shared/components/ui/textarea'
 import { Input } from '@shared/components/ui/input'
+import { TagInput } from '@shared/components/ui/tag-input'
 import { useToast } from '@shared/hooks/use-toast'
 import { useAuth } from '@app/providers/AuthContext'
 import { useUserProfile } from '@shared/hooks/useUserProfile'
-import { updateMedicalRecordWithLog } from '@lib/supabase-service'
+import { updateMedicalRecordWithLog, createOrUpdateImmunoRequest } from '@lib/supabase-service'
 import type { MedicalRecord } from '@lib/supabase-service'
 
 // Validation schemas for different case types
@@ -68,6 +69,8 @@ interface GenerateCaseModalProps {
 const GenerateCaseModal: React.FC<GenerateCaseModalProps> = ({ case_, isOpen, onClose, onSuccess }) => {
 	const [isSaving, setIsSaving] = useState(false)
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
+	const [inmunorreacciones, setInmunorreacciones] = useState<string[]>([])
+	const [isRequestingImmuno, setIsRequestingImmuno] = useState(false)
 	const { toast } = useToast()
 	const { user } = useAuth()
 	const { profile } = useUserProfile()
@@ -128,6 +131,10 @@ const GenerateCaseModal: React.FC<GenerateCaseModalProps> = ({ case_, isOpen, on
 	React.useEffect(() => {
 		if (case_ && isOpen) {
 			const newCaseType = getCaseType(case_.exam_type)
+			
+			// Reset inmunorreacciones when case changes
+			setInmunorreacciones([])
+			
 			form.reset({
 				case_type: newCaseType,
 				...(newCaseType === 'biopsia' && {
@@ -190,6 +197,74 @@ const GenerateCaseModal: React.FC<GenerateCaseModalProps> = ({ case_, isOpen, on
 			}
 
 			setSelectedFile(file)
+		}
+	}
+
+	const handleRequestImmunoreactions = async () => {
+		if (!case_ || !user || inmunorreacciones.length === 0) {
+			toast({
+				title: '❌ Error',
+				description: 'Debe agregar al menos una inmunorreacción.',
+				variant: 'destructive',
+			})
+			return
+		}
+
+		setIsRequestingImmuno(true)
+
+		try {
+			// 1. Actualizar la columna ims en medical_records_clean
+			const imsString = inmunorreacciones.join(',')
+			const { error: updateError } = await updateMedicalRecordWithLog(
+				case_.id!,
+				{ ims: imsString },
+				[
+					{
+						field: 'ims',
+						fieldLabel: 'Inmunorreacciones Solicitadas',
+						oldValue: case_.ims || null,
+						newValue: imsString,
+					},
+				],
+				user.id,
+				user.email || 'unknown@email.com',
+			)
+
+			if (updateError) {
+				throw updateError
+			}
+
+			// 2. Crear/actualizar registro en immuno_requests
+			const { error: immunoError } = await createOrUpdateImmunoRequest(
+				case_.id!,
+				inmunorreacciones,
+				18.00 // Precio unitario por defecto
+			)
+
+			if (immunoError) {
+				throw immunoError
+			}
+
+			toast({
+				title: '✅ Inmunorreacciones solicitadas',
+				description: `Se han solicitado ${inmunorreacciones.length} inmunorreacciones para este caso.`,
+				className: 'bg-green-100 border-green-400 text-green-800',
+			})
+
+			// Limpiar las inmunorreacciones del estado local
+			setInmunorreacciones([])
+
+			// Actualizar el caso en el estado padre
+			onSuccess()
+		} catch (error) {
+			console.error('Error requesting immunoreactions:', error)
+			toast({
+				title: '❌ Error al solicitar inmunorreacciones',
+				description: 'Hubo un problema al procesar la solicitud. Inténtalo de nuevo.',
+				variant: 'destructive',
+			})
+		} finally {
+			setIsRequestingImmuno(false)
 		}
 	}
 
@@ -570,6 +645,80 @@ const GenerateCaseModal: React.FC<GenerateCaseModalProps> = ({ case_, isOpen, on
 
 									{caseType === 'inmunohistoquimica' && (
 										<div className="space-y-4">
+											{/* Sección de Inmunorreacciones - Solo para Admin */}
+											{profile?.role === 'admin' && (
+												<div className="space-y-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+													<div className="flex items-center gap-2 mb-3">
+														<Heart className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+														<h4 className="font-semibold text-purple-800 dark:text-purple-300">
+															Solicitar Inmunorreacciones
+														</h4>
+													</div>
+
+													<div className="space-y-3">
+														<div>
+															<label className="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
+																Agregar Inmunorreacciones
+															</label>
+															<TagInput
+																value={inmunorreacciones}
+																onChange={setInmunorreacciones}
+																placeholder="Escribir inmunorreacción y presionar Enter..."
+																maxTags={20}
+																allowDuplicates={false}
+																className="bg-white dark:bg-gray-800"
+															/>
+															<p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+																Ejemplo: RE, RP, CK7, CK20, etc. Presiona Enter después de cada una.
+															</p>
+														</div>
+
+														{inmunorreacciones.length > 0 && (
+															<div className="bg-white dark:bg-gray-800 p-3 rounded border">
+																<p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+																	Resumen de la solicitud:
+																</p>
+																<div className="grid grid-cols-3 gap-4 text-sm">
+																	<div>
+																		<span className="text-gray-500 dark:text-gray-400">Cantidad:</span>
+																		<p className="font-medium">{inmunorreacciones.length} reacciones</p>
+																	</div>
+																	<div>
+																		<span className="text-gray-500 dark:text-gray-400">Precio unitario:</span>
+																		<p className="font-medium">$18.00</p>
+																	</div>
+																	<div>
+																		<span className="text-gray-500 dark:text-gray-400">Total:</span>
+																		<p className="font-medium text-green-600 dark:text-green-400">
+																			${(inmunorreacciones.length * 18).toFixed(2)}
+																		</p>
+																	</div>
+																</div>
+															</div>
+														)}
+
+														<Button
+															type="button"
+															onClick={handleRequestImmunoreactions}
+															disabled={inmunorreacciones.length === 0 || isRequestingImmuno}
+															className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+														>
+															{isRequestingImmuno ? (
+																<>
+																	<Loader2 className="w-4 h-4 mr-2 animate-spin" />
+																	Solicitando...
+																</>
+															) : (
+																<>
+																	<Heart className="w-4 h-4 mr-2" />
+																	Solicitar inmunorreacciones ({inmunorreacciones.length})
+																</>
+															)}
+														</Button>
+													</div>
+												</div>
+											)}
+
 											<FormField
 												control={form.control}
 												name="informacion_clinica"
