@@ -138,7 +138,7 @@ export const signOut = async (): Promise<{ error: AuthError | null }> => {
 // Get user session timeout setting
 export const getUserSessionTimeout = async (userId: string): Promise<number> => {
 	try {
-		const { data, error } = await supabase.from('user_settings').select('session_timeout').eq('id', userId).single()
+		const { data, error } = await supabase.from('user_settings').select('session_timeout').eq('id', userId).maybeSingle()
 
 		if (error) {
 			// If no settings found, create with default timeout
