@@ -171,6 +171,7 @@ export type Database = {
 					generated_by: string | null
 					generated_by_display_name: string | null
 					generated_at: string | null
+					ims: string | null
 				}
 				Insert: {
 					id?: string
@@ -224,6 +225,7 @@ export type Database = {
 					generated_by?: string | null
 					generated_by_display_name?: string | null
 					generated_at?: string | null
+					ims?: string | null
 				}
 				Update: {
 					id?: string
@@ -277,6 +279,43 @@ export type Database = {
 					generated_by?: string | null
 					generated_by_display_name?: string | null
 					generated_at?: string | null
+					ims?: string | null
+				}
+				Relationships: []
+			}
+			immuno_requests: {
+				Row: {
+					id: string
+					case_id: string
+					inmunorreacciones: string
+					n_reacciones: number
+					precio_unitario: number
+					total: number
+					pagado: boolean
+					created_at: string
+					updated_at: string
+				}
+				Insert: {
+					id?: string
+					case_id: string
+					inmunorreacciones: string
+					n_reacciones: number
+					precio_unitario?: number
+					total: number
+					pagado?: boolean
+					created_at?: string
+					updated_at?: string
+				}
+				Update: {
+					id?: string
+					case_id?: string
+					inmunorreacciones?: string
+					n_reacciones?: number
+					precio_unitario?: number
+					total?: number
+					pagado?: boolean
+					created_at?: string
+					updated_at?: string
 				}
 				Relationships: []
 			}

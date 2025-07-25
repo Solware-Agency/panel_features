@@ -577,6 +577,134 @@ export const updatePdfReadyStatus = async (id: string, isReady: boolean) => {
 	}
 }
 
+// Function to create or update immuno request
+export const createOrUpdateImmunoRequest = async (
+	caseId: string,
+	inmunorreacciones: string[],
+	precioUnitario: number = 18.00
+) => {
+	try {
+		const inmunorreaccionesString = inmunorreacciones.join(',')
+		const nReacciones = inmunorreacciones.length
+		const total = nReacciones * precioUnitario
+
+		const { data, error } = await supabase
+			.from('immuno_requests')
+			.upsert({
+				case_id: caseId,
+				inmunorreacciones: inmunorreaccionesString,
+				n_reacciones: nReacciones,
+				precio_unitario: precioUnitario,
+				total: total,
+				pagado: false,
+			}, {
+				onConflict: 'case_id'
+			})
+			.select()
+			.single()
+
+		if (error) {
+			console.error('❌ Error creating/updating immuno request:', error)
+			return { data: null, error }
+		}
+
+		console.log('✅ Immuno request created/updated successfully:', data)
+		return { data, error: null }
+	} catch (error) {
+		console.error('❌ Unexpected error creating/updating immuno request:', error)
+		return { data: null, error }
+	}
+}
+
+// Function to get immuno requests
+export const getImmunoRequests = async () => {
+	try {
+		const { data, error } = await supabase
+			.from('immuno_requests')
+			.select(`
+				*,
+				medical_records_clean!inner(
+					code,
+					full_name
+				)
+			`)
+			.order('created_at', { ascending: false })
+
+		if (error) {
+			console.error('❌ Error fetching immuno requests:', error)
+			return { data: null, error }
+		}
+
+		console.log('✅ Immuno requests fetched successfully:', data)
+		return { data, error: null }
+	} catch (error) {
+		console.error('❌ Unexpected error fetching immuno requests:', error)
+		return { data: null, error }
+	}
+}
+
+// Function to update immuno request payment status
+export const updateImmunoRequestPaymentStatus = async (requestId: string, pagado: boolean) => {
+	try {
+		const { data, error } = await supabase
+			.from('immuno_requests')
+			.update({ pagado })
+			.eq('id', requestId)
+			.select()
+			.single()
+
+		if (error) {
+			console.error('❌ Error updating immuno request payment status:', error)
+			return { data: null, error }
+		}
+
+		console.log('✅ Immuno request payment status updated successfully:', data)
+		return { data, error: null }
+	} catch (error) {
+		console.error('❌ Unexpected error updating immuno request payment status:', error)
+		return { data: null, error }
+	}
+}
+
+// Function to update immuno request price
+export const updateImmunoRequestPrice = async (requestId: string, precioUnitario: number) => {
+	try {
+		// First get the current request to calculate new total
+		const { data: currentRequest, error: fetchError } = await supabase
+			.from('immuno_requests')
+			.select('n_reacciones')
+			.eq('id', requestId)
+			.single()
+
+		if (fetchError) {
+			console.error('❌ Error fetching current immuno request:', fetchError)
+			return { data: null, error: fetchError }
+		}
+
+		const newTotal = currentRequest.n_reacciones * precioUnitario
+
+		const { data, error } = await supabase
+			.from('immuno_requests')
+			.update({ 
+				precio_unitario: precioUnitario,
+				total: newTotal
+			})
+			.eq('id', requestId)
+			.select()
+			.single()
+
+		if (error) {
+			console.error('❌ Error updating immuno request price:', error)
+			return { data: null, error }
+		}
+
+		console.log('✅ Immuno request price updated successfully:', data)
+		return { data, error: null }
+	} catch (error) {
+		console.error('❌ Unexpected error updating immuno request price:', error)
+		return { data: null, error }
+	}
+}
 // Mantener compatibilidad con nombres anteriores
 export const insertCliente = insertMedicalRecord
 export const getClientes = getMedicalRecords
