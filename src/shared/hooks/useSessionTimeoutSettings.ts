@@ -19,6 +19,8 @@ export function useSessionTimeoutSettings({ user }: UseSessionTimeoutSettingsOpt
 			return
 		}
 
+		let isMounted = true
+
 		const loadUserTimeout = async () => {
 			try {
 				const { data, error } = await supabase
@@ -33,14 +35,18 @@ export function useSessionTimeoutSettings({ user }: UseSessionTimeoutSettingsOpt
 				}
 
 				const timeoutMinutes = data?.session_timeout || 30
-				setSessionTimeout(timeoutMinutes)
+				if (isMounted) {
+					setSessionTimeout(timeoutMinutes)
+				}
 
 				// Also save to localStorage for immediate access
 				localStorage.setItem('sessionTimeout', timeoutMinutes.toString())
 			} catch (error) {
 				console.error('Error loading user timeout:', error)
 			} finally {
-				setIsLoading(false)
+				if (isMounted) {
+					setIsLoading(false)
+				}
 			}
 		}
 
@@ -54,6 +60,10 @@ export function useSessionTimeoutSettings({ user }: UseSessionTimeoutSettingsOpt
 		}
 
 		loadUserTimeout()
+
+		return () => {
+			isMounted = false
+		}
 	}, [user])
 
 	// Update user timeout in database
